@@ -1,0 +1,56 @@
+/// Dimension. One row per rubric attached to a Canvas object (rubric_associations joined to rubrics; deleted excluded on both).
+table 'Rubric Association'
+	lineageTag: 2dd91c96-938e-4e5e-8c6c-fce4982492cb
+
+	column 'Rubric Association ID'
+		dataType: int64
+		isHidden
+		lineageTag: a71e931c-b510-462f-a718-c313dcdc10df
+		summarizeBy: none
+		sourceColumn: id
+
+	column 'Rubric Title'
+		dataType: string
+		lineageTag: 59ad7fbc-cbc6-4fdf-bf39-a0f88a3e95e2
+		sourceColumn: rubric_title
+
+	column 'Rubric Points Possible'
+		dataType: decimal
+		lineageTag: 03fce7f7-e945-4663-859c-0a15f5224c30
+		summarizeBy: none
+		sourceColumn: rubric_points_possible
+
+	/// Title of the object the rubric is attached to (usually the assignment name).
+	column 'Association Title'
+		dataType: string
+		lineageTag: ec2ccaf0-032c-4979-804a-74925d9d4693
+		sourceColumn: title
+
+	/// grading or bookmark.
+	column Purpose
+		dataType: string
+		lineageTag: e26fddd0-36ac-48e8-9640-a4f7a0971959
+		sourceColumn: purpose
+
+	column 'Use For Grading'
+		dataType: boolean
+		lineageTag: e84fce9a-a49e-4227-a8b2-5fafeb469bfd
+		sourceColumn: use_for_grading
+
+	column 'Hide Outcome Results'
+		dataType: boolean
+		lineageTag: 0e6e99f5-d421-46e3-aa6f-5564d3f2a32e
+		sourceColumn: hide_outcome_results
+
+	partition 'Rubric Association' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "rubric_association.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"rubric_title", type text}, {"rubric_points_possible", Currency.Type}, {"title", type text}, {"purpose", type text}, {"use_for_grading", type logical}, {"hide_outcome_results", type logical}}, "en-US")
+				in
+				    Typed
+

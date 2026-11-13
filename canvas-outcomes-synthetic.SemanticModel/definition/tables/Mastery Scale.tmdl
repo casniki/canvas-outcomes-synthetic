@@ -1,0 +1,52 @@
+/// Reference table (no relationships). One row per mastery-scale rating (outcome_proficiency_ratings joined to outcome_proficiencies; deleted excluded) for each account or course that defines a scale.
+table 'Mastery Scale'
+	lineageTag: a27ebb4d-6866-4986-a83a-4ce48553b3bb
+
+	/// Account or Course that owns the mastery scale.
+	column 'Context Type'
+		dataType: string
+		lineageTag: ec41d689-d212-4e39-a3c5-86bf352703eb
+		sourceColumn: context_type
+
+	/// Canvas ID of the owning account or course.
+	column 'Context ID'
+		dataType: int64
+		lineageTag: d2334e2b-0f0a-4855-98aa-209fb9fac483
+		summarizeBy: none
+		sourceColumn: context_id
+
+	column 'Rating Description'
+		dataType: string
+		lineageTag: 4df4b3b1-bfcf-4379-aaff-4f6f6e1a3e2e
+		sourceColumn: description
+
+	column Points
+		dataType: decimal
+		lineageTag: 91edd0b5-1e79-422b-9b62-f77c863d7e67
+		summarizeBy: none
+		sourceColumn: points
+
+	/// True for the rating that marks the mastery threshold.
+	column 'Is Mastery'
+		dataType: boolean
+		lineageTag: 20758193-b2a8-453d-be67-d040bbcf9343
+		sourceColumn: mastery
+
+	/// Hex colour Canvas uses for the rating (without #).
+	column Color
+		dataType: string
+		lineageTag: ac72c71b-0849-429b-ae40-e59955e98a72
+		sourceColumn: color
+
+	partition 'Mastery Scale' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "mastery_scale.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"context_type", type text}, {"context_id", Int64.Type}, {"description", type text}, {"points", Currency.Type}, {"mastery", type logical}, {"color", type text}}, "en-US")
+				in
+				    Typed
+

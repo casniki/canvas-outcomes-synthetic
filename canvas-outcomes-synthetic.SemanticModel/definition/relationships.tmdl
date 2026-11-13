@@ -1,0 +1,76 @@
+relationship 'Outcome Results_Learning Outcome ID_Learning Outcome_Learning Outcome ID'
+	fromColumn: 'Outcome Results'.'Learning Outcome ID'
+	toColumn: 'Learning Outcome'.'Learning Outcome ID'
+
+relationship 'Outcome Results_User ID_User_User ID'
+	fromColumn: 'Outcome Results'.'User ID'
+	toColumn: User.'User ID'
+
+relationship 'Outcome Results_Course ID_Course_Course ID'
+	fromColumn: 'Outcome Results'.'Course ID'
+	toColumn: Course.'Course ID'
+
+relationship 'Outcome Results_Assignment ID_Assignment_Assignment ID'
+	fromColumn: 'Outcome Results'.'Assignment ID'
+	toColumn: Assignment.'Assignment ID'
+
+relationship 'Outcome Results_Rubric Association ID_Rubric Association_Rubric Association ID'
+	fromColumn: 'Outcome Results'.'Rubric Association ID'
+	toColumn: 'Rubric Association'.'Rubric Association ID'
+
+relationship 'Outcome Results_Assessed Date_Date_Date'
+	fromColumn: 'Outcome Results'.'Assessed Date'
+	toColumn: Date.Date
+
+relationship 'Outcome Question Results_Learning Outcome ID_Learning Outcome_Learning Outcome ID'
+	fromColumn: 'Outcome Question Results'.'Learning Outcome ID'
+	toColumn: 'Learning Outcome'.'Learning Outcome ID'
+
+relationship 'Outcome Question Results_User ID_User_User ID'
+	fromColumn: 'Outcome Question Results'.'User ID'
+	toColumn: User.'User ID'
+
+relationship 'Outcome Question Results_Course ID_Course_Course ID'
+	fromColumn: 'Outcome Question Results'.'Course ID'
+	toColumn: Course.'Course ID'
+
+relationship 'Outcome Question Results_Assessed Date_Date_Date'
+	fromColumn: 'Outcome Question Results'.'Assessed Date'
+	toColumn: Date.Date
+
+relationship 'Rubric Assessments_Rubric Association ID_Rubric Association_Rubric Association ID'
+	fromColumn: 'Rubric Assessments'.'Rubric Association ID'
+	toColumn: 'Rubric Association'.'Rubric Association ID'
+
+relationship 'Rubric Assessments_User ID_User_User ID'
+	fromColumn: 'Rubric Assessments'.'User ID'
+	toColumn: User.'User ID'
+
+relationship 'Rubric Assessments_Course ID_Course_Course ID'
+	fromColumn: 'Rubric Assessments'.'Course ID'
+	toColumn: Course.'Course ID'
+
+relationship 'Rubric Assessments_Assignment ID_Assignment_Assignment ID'
+	fromColumn: 'Rubric Assessments'.'Assignment ID'
+	toColumn: Assignment.'Assignment ID'
+
+relationship 'Rubric Assessments_Assessed Date_Date_Date'
+	fromColumn: 'Rubric Assessments'.'Assessed Date'
+	toColumn: Date.Date
+
+relationship 'Enrollments_User ID_User_User ID'
+	fromColumn: Enrollments.'User ID'
+	toColumn: User.'User ID'
+
+relationship 'Enrollments_Course ID_Course_Course ID'
+	fromColumn: Enrollments.'Course ID'
+	toColumn: Course.'Course ID'
+
+relationship 'Enrollments_Course Section ID_Course Section_Course Section ID'
+	fromColumn: Enrollments.'Course Section ID'
+	toColumn: 'Course Section'.'Course Section ID'
+
+relationship 'Learning Outcome_Learning Outcome Group ID_Learning Outcome Group_Learning Outcome Group ID'
+	fromColumn: 'Learning Outcome'.'Learning Outcome Group ID'
+	toColumn: 'Learning Outcome Group'.'Learning Outcome Group ID'
+

@@ -1,0 +1,66 @@
+/// Dimension. One row per Canvas outcome group (learning_outcome_groups, deleted excluded) with its parent chain walked to the root. Related to Learning Outcome (snowflake, by design).
+table 'Learning Outcome Group'
+	lineageTag: a7b1c5d5-898e-4c8c-824e-6ef7b2213d25
+
+	column 'Learning Outcome Group ID'
+		dataType: int64
+		isHidden
+		lineageTag: 61722728-4d01-4e5e-b887-3ecbf1bb4f52
+		summarizeBy: none
+		sourceColumn: id
+
+	column 'Group Name'
+		dataType: string
+		lineageTag: 02789822-000b-4f79-869d-8dbbd160601c
+		sourceColumn: title
+
+	/// Title of the immediate parent group; blank for root groups.
+	column 'Parent Group Name'
+		dataType: string
+		lineageTag: 650f5332-c4d6-4ea4-8245-c37ec8fea9e8
+		sourceColumn: parent_group_name
+
+	/// Title of the top of the chain. Canvas root groups are usually named after the account or course that owns them.
+	column 'Root Group Name'
+		dataType: string
+		lineageTag: b52019de-8103-4846-84ee-9436c994cbe7
+		sourceColumn: root_group_name
+
+	/// Full chain from the root group to this group, separated by ' > '.
+	column 'Group Path'
+		dataType: string
+		lineageTag: 955656b8-5ddf-46e2-81e8-8101f26a7c99
+		sourceColumn: group_path
+
+	/// Number of levels in Group Path (1 = root group).
+	column 'Group Depth'
+		dataType: int64
+		lineageTag: 9efeeea3-a3dd-43e3-ab2b-d1dc8235cfdd
+		summarizeBy: none
+		sourceColumn: group_depth
+
+	/// Account or Course that owns the group.
+	column 'Group Context Type'
+		dataType: string
+		lineageTag: 219f27ea-7845-41b4-9996-6f5623740b7c
+		sourceColumn: context_type
+
+	/// True if the group has more than 9 ancestors and Group Path was cut off. Should always be false; check after refresh.
+	column 'Path Truncated'
+		dataType: boolean
+		isHidden
+		lineageTag: 31661ae9-cd09-4c59-857c-a23889a44654
+		sourceColumn: path_truncated
+
+	partition 'Learning Outcome Group' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "learning_outcome_group.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"title", type text}, {"parent_group_name", type text}, {"root_group_name", type text}, {"group_path", type text}, {"group_depth", Int64.Type}, {"context_type", type text}, {"path_truncated", type logical}}, "en-US")
+				in
+				    Typed
+

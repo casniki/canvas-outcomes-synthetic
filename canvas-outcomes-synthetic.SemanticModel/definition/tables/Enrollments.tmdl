@@ -1,0 +1,46 @@
+/// Fact. One row per student enrollment (Canvas enrollments, type StudentEnrollment, deleted excluded). The only table that links students to course sections.
+table Enrollments
+	lineageTag: 49bb371f-c64f-4009-a1ee-8963c6a10e49
+
+	column 'User ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: ad22c5a2-fc1f-4c11-8733-45546de97b25
+		summarizeBy: none
+		sourceColumn: user_id
+
+	column 'Course ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 96c7f60c-797a-4d1b-a18b-dd752263c8ad
+		summarizeBy: none
+		sourceColumn: course_id
+
+	column 'Course Section ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 6e6ddadf-f53d-4906-9b5b-9d4f64ea4e2e
+		summarizeBy: none
+		sourceColumn: course_section_id
+
+	/// Canvas enrollment workflow_state: active, completed, inactive, invited, creation_pending or rejected.
+	column 'Enrollment Status'
+		dataType: string
+		lineageTag: 43b51387-26d3-4c12-ab92-de03cabd51db
+		sourceColumn: workflow_state
+
+	partition Enrollments = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "enrollments.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"user_id", Int64.Type}, {"course_id", Int64.Type}, {"course_section_id", Int64.Type}, {"workflow_state", type text}}, "en-US")
+				in
+				    Typed
+

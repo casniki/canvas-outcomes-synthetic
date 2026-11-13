@@ -1,0 +1,10 @@
+context_type,context_id,description,points,mastery,color
+Account,1,Exceeds Expectations,4,false,02672D
+Account,1,Meets Expectations,3,true,03893D
+Account,1,Approaching Expectations,2,false,FAB901
+Account,1,Below Expectations,1,false,E62429
+Account,2,Exemplary,5,false,02672D
+Account,2,Proficient,4,false,03893D
+Account,2,Competent,3,true,0B874B
+Account,2,Developing,2,false,FAB901
+Account,2,Beginning,1,false,E62429

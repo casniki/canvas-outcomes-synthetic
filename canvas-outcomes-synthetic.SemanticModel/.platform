@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "canvas-outcomes-synthetic"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "e5593666-c9f0-4f5f-b8e1-54cf6bd3e6de"
+  }
+}

@@ -1,0 +1,62 @@
+/// Calendar dimension generated in Power Query, from one year before Results Start Date to Dec 31 of next year. Academic Year runs July-June. All fact dates it filters are UTC dates.
+table Date
+	lineageTag: efb35c8c-459a-425f-99fc-732f0eefba2f
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isUnique
+		formatString: yyyy-mm-dd
+		lineageTag: 04074e8d-20a3-4c8c-8b13-b892262adc87
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		dataType: int64
+		lineageTag: b4613766-dc74-4bfe-8327-d2004db97495
+		summarizeBy: none
+		sourceColumn: Year
+
+	column Quarter
+		dataType: string
+		lineageTag: c5b8f25d-23aa-452c-9360-9cbedda42a5d
+		sourceColumn: Quarter
+
+	column 'Month Number'
+		dataType: int64
+		lineageTag: 4d6cfdfc-7c96-4465-8cd4-acd819ebdfef
+		summarizeBy: none
+		sourceColumn: Month Number
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: 9ad547a6-b90b-4d86-a10c-ce946548496e
+		sourceColumn: Month Name
+		sortByColumn: 'Month Number'
+
+	/// July-June academic year, e.g. 2022-23 = 2022-07-01 to 2023-06-30.
+	column 'Academic Year'
+		dataType: string
+		lineageTag: 43cc689a-308c-4d2d-bb5f-d0181f471389
+		sourceColumn: Academic Year
+
+	partition Date = m
+		mode: import
+		source =
+				let
+				    StartDate = Date.AddYears(#"Results Start Date", -1),
+				    EndDate = #date(Date.Year(DateTime.LocalNow()) + 1, 12, 31),
+				    Dates = List.Dates(StartDate, Duration.Days(EndDate - StartDate) + 1, #duration(1, 0, 0, 0)),
+				    Base = Table.FromList(Dates, Splitter.SplitByNothing(), type table [Date = date]),
+				    AddYear = Table.AddColumn(Base, "Year", each Date.Year([Date]), Int64.Type),
+				    AddQuarter = Table.AddColumn(AddYear, "Quarter", each "Q" & Text.From(Date.QuarterOfYear([Date])), type text),
+				    AddMonthNumber = Table.AddColumn(AddQuarter, "Month Number", each Date.Month([Date]), Int64.Type),
+				    AddMonthName = Table.AddColumn(AddMonthNumber, "Month Name", each Date.ToText([Date], "MMMM", "en-US"), type text),
+				    AddAcademicYear = Table.AddColumn(AddMonthName, "Academic Year", each let y = if Date.Month([Date]) >= 7 then Date.Year([Date]) else Date.Year([Date]) - 1 in Text.From(y) & "-" & Text.End(Text.From(y + 1), 2), type text)
+				in
+				    AddAcademicYear
+

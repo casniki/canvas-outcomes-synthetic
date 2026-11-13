@@ -1,0 +1,62 @@
+/// Dimension. One row per course assignment (assignments, context_type Course, deleted excluded).
+table Assignment
+	lineageTag: c156fd48-60b9-48b6-81a4-424ee5d33e43
+
+	column 'Assignment ID'
+		dataType: int64
+		isHidden
+		lineageTag: 8ae199ab-4a53-4e38-ac26-26735b44533a
+		summarizeBy: none
+		sourceColumn: id
+
+	column 'Assignment Title'
+		dataType: string
+		lineageTag: 68550850-98c3-4655-a022-a0602d126420
+		sourceColumn: title
+
+	column 'Assignment Points Possible'
+		dataType: decimal
+		lineageTag: 18ab80b3-0489-4351-ab21-be2f8449679e
+		summarizeBy: none
+		sourceColumn: points_possible
+
+	/// points, percent, letter_grade, gpa_scale, pass_fail or not_graded.
+	column 'Grading Type'
+		dataType: string
+		lineageTag: 8146a33d-45e9-495d-8611-08fc230b1d54
+		sourceColumn: grading_type
+
+	/// Comma-separated Canvas submission types (e.g. online_upload,online_text_entry, online_quiz).
+	column 'Submission Types'
+		dataType: string
+		lineageTag: d62f767d-dee4-4fb0-9817-2e86a223ea3e
+		sourceColumn: submission_types
+
+	/// UTC date.
+	column 'Due Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: f068c8bf-d07e-42bb-9d2c-b8620110d6be
+		summarizeBy: none
+		sourceColumn: due_at
+
+		annotation SummarizationSetBy = Automatic
+
+	/// published or unpublished.
+	column 'Assignment Status'
+		dataType: string
+		lineageTag: c02d17a8-3f98-4920-945b-a2788f8f9fd0
+		sourceColumn: workflow_state
+
+	partition Assignment = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "assignment.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"title", type text}, {"points_possible", Currency.Type}, {"grading_type", type text}, {"submission_types", type text}, {"due_at", type datetime}, {"workflow_state", type text}}, "en-US")
+				in
+				    Typed
+

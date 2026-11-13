@@ -1,0 +1,134 @@
+/// Dimension. One row per Canvas course (courses, deleted excluded) with its term and account hierarchy denormalized. School = account at level 2 under the root, Department = level 3; Account Path holds the full chain for deeper sub-accounts.
+table Course
+	lineageTag: aef403ea-88dc-4ffb-a961-7acae333d514
+
+	column 'Course ID'
+		dataType: int64
+		isHidden
+		lineageTag: bd448951-7264-4547-91f8-f4695d74b563
+		summarizeBy: none
+		sourceColumn: id
+
+	column 'Course Name'
+		dataType: string
+		lineageTag: a08ff315-8188-4639-aa3e-c98a776e2e4d
+		sourceColumn: name
+
+	column 'Course Code'
+		dataType: string
+		lineageTag: baf38c68-0497-42fe-9378-c10cbca7b93c
+		sourceColumn: course_code
+
+	column 'Course SIS ID'
+		dataType: string
+		lineageTag: 62907c83-b3f4-477a-ab3e-a94dff6afae1
+		sourceColumn: sis_source_id
+
+	/// Canvas course workflow_state: available (published), completed (concluded), claimed/created (unpublished).
+	column 'Course Status'
+		dataType: string
+		lineageTag: 403a4490-77a8-45c8-b0e5-a26f29229d93
+		sourceColumn: workflow_state
+
+	/// UTC date.
+	column 'Course Start Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: afdc6190-de9b-4181-8825-e85b77fa67e5
+		summarizeBy: none
+		sourceColumn: start_at
+
+		annotation SummarizationSetBy = Automatic
+
+	/// UTC date (courses.conclude_at).
+	column 'Course End Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 60617151-e00a-4395-bf93-30a59268c473
+		summarizeBy: none
+		sourceColumn: conclude_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Term Name'
+		dataType: string
+		lineageTag: ed756b2e-e002-4fe8-beb4-b420b8a3e520
+		sourceColumn: term_name
+
+	column 'Term Code'
+		dataType: string
+		lineageTag: c16e8d60-a9df-4d83-9eab-dd3f4f3319ba
+		sourceColumn: term_code
+
+	column 'Term SIS ID'
+		dataType: string
+		lineageTag: acb89f3f-61e7-4172-be46-6450da74cd29
+		sourceColumn: term_sis_id
+
+	/// UTC date.
+	column 'Term Start Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 234c2e29-a1e1-46ce-94fd-ad028f969f29
+		summarizeBy: none
+		sourceColumn: term_start_at
+
+		annotation SummarizationSetBy = Automatic
+
+	/// UTC date.
+	column 'Term End Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: f50a5600-9461-42fc-b1b7-8bc9ecfabdd0
+		summarizeBy: none
+		sourceColumn: term_end_at
+
+		annotation SummarizationSetBy = Automatic
+
+	/// The Canvas sub-account the course sits in directly.
+	column 'Account Name'
+		dataType: string
+		lineageTag: 6cbe674a-b533-4695-ab9b-e2d5298eb241
+		sourceColumn: acct_name_0
+
+	column 'Account SIS ID'
+		dataType: string
+		lineageTag: cc2e1f7c-9b28-4b3c-8bfe-66646135a0c6
+		sourceColumn: account_sis_id
+
+	/// Level-2 account under Loma Linda University (e.g. School of Medicine). Blank when the course sits directly in the root account.
+	column School
+		dataType: string
+		lineageTag: 42667899-5fc9-4725-82e5-27f60009673a
+		sourceColumn: school
+
+	/// Level-3 account (e.g. Surgery). Blank when the course sits at the school level or above.
+	column Department
+		dataType: string
+		lineageTag: b4b97b81-1771-432e-8db0-10cf18be7aa3
+		sourceColumn: department
+
+	/// Full account chain from the root, separated by ' > '. Use for sub-accounts deeper than Department (up to 5 levels).
+	column 'Account Path'
+		dataType: string
+		lineageTag: db37870a-f7ae-49f6-9889-5339f4851859
+		sourceColumn: account_path
+
+	/// True when the course name contains the whole word TEST, TESTS or OEE (e.g. 'Biology Test Shell', 'OEE Test Course'). Substrings such as Testimony, Testing or Gastrointestinal do not count. All measures exclude test courses.
+	column 'Is Test Course'
+		dataType: boolean
+		lineageTag: 5d2a7fbc-36c1-4eff-9d91-47e454593d26
+		sourceColumn: is_test_course
+
+	partition Course = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "course.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"name", type text}, {"course_code", type text}, {"sis_source_id", type text}, {"workflow_state", type text}, {"start_at", type datetime}, {"conclude_at", type datetime}, {"term_name", type text}, {"term_code", type text}, {"term_sis_id", type text}, {"term_start_at", type datetime}, {"term_end_at", type datetime}, {"acct_name_0", type text}, {"account_sis_id", type text}, {"school", type text}, {"department", type text}, {"account_path", type text}, {"is_test_course", type logical}}, "en-US")
+				in
+				    Typed
+

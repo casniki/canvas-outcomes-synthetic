@@ -1,0 +1,80 @@
+/// Fact. One row per quiz question x outcome result (Canvas learning_outcome_question_results). Inner-joined to the filtered Outcome Results, so it inherits the course-context, not-deleted and Results Start Date filters. Dates are UTC.
+table 'Outcome Question Results'
+	lineageTag: 3c144411-abf6-4c49-8482-a61b8b64e3f7
+
+	column 'Learning Outcome ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 69d85ec7-f401-462f-87ed-845c29d39805
+		summarizeBy: none
+		sourceColumn: learning_outcome_id
+
+	column 'User ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 59a59f15-210c-41c7-90af-70cd102b6645
+		summarizeBy: none
+		sourceColumn: user_id
+
+	column 'Course ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 23e0f971-37f5-40b7-9a52-b7e065559554
+		summarizeBy: none
+		sourceColumn: context_id
+
+	column Score
+		dataType: decimal
+		lineageTag: 9ca81b74-3637-4c21-927c-bfd5186276c6
+		summarizeBy: sum
+		sourceColumn: score
+
+	column 'Points Possible'
+		dataType: decimal
+		lineageTag: 7cdf719a-8fb5-4af4-97e7-ab037c866a67
+		summarizeBy: sum
+		sourceColumn: possible
+
+	/// Question score as a fraction of points possible (0-1), 4 decimal places.
+	column Percent
+		dataType: decimal
+		lineageTag: daebd93c-b25c-4dd8-9b43-8ec12616301a
+		summarizeBy: average
+		sourceColumn: percent
+
+	column 'Is Mastery'
+		dataType: boolean
+		lineageTag: 41bf0480-b6ca-4fab-be48-9e542c31ff45
+		sourceColumn: mastery
+
+	column Attempt
+		dataType: int64
+		lineageTag: 7d856be0-38c2-42e9-a27d-25cb347826aa
+		summarizeBy: none
+		sourceColumn: attempt
+
+	/// UTC calendar date of assessed_at (falls back to created_at).
+	column 'Assessed Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: d05cd078-509b-4dd4-a870-99a154dd62b5
+		summarizeBy: none
+		sourceColumn: assessed_date
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Outcome Question Results' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "outcome_question_results.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"learning_outcome_id", Int64.Type}, {"user_id", Int64.Type}, {"context_id", Int64.Type}, {"score", Currency.Type}, {"possible", Currency.Type}, {"percent", Currency.Type}, {"mastery", type logical}, {"attempt", Int64.Type}, {"assessed_date", type datetime}}, "en-US")
+				in
+				    Typed
+

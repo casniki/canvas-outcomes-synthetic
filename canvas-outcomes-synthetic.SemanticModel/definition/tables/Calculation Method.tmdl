@@ -1,0 +1,38 @@
+/// Reference table (no relationships). Account- or course-level outcome calculation method overrides (outcome_calculation_methods, deleted excluded).
+table 'Calculation Method'
+	lineageTag: 0485fef0-548a-4409-8702-583e3f6ad0d8
+
+	column 'Context Type'
+		dataType: string
+		lineageTag: e7f24b2a-74cf-49b4-a10c-485e2cd257f1
+		sourceColumn: context_type
+
+	column 'Context ID'
+		dataType: int64
+		lineageTag: 15f1946e-df8c-428c-b92b-f60be21196e2
+		summarizeBy: none
+		sourceColumn: context_id
+
+	column 'Calculation Method'
+		dataType: string
+		lineageTag: 64a32df5-29c2-422a-8465-83b90803527e
+		sourceColumn: calculation_method
+
+	column 'Calculation Value'
+		dataType: int64
+		lineageTag: cd1b1940-c2f4-4c6b-aef7-aa3a45887be0
+		summarizeBy: none
+		sourceColumn: calculation_int
+
+	partition 'Calculation Method' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "calculation_method.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"context_type", type text}, {"context_id", Int64.Type}, {"calculation_method", type text}, {"calculation_int", Int64.Type}}, "en-US")
+				in
+				    Typed
+

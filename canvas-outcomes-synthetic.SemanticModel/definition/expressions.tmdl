@@ -1,0 +1,12 @@
+/// Folder holding the synthetic CSV extract (data\ in this project). Change it if the project moves.
+expression DataFolder = "C:\code\canvas-outcomes-synthetic\data\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 5b0f8f0e-5c1e-4a43-9f43-1d7a2c9e6a10
+
+	annotation PBI_ResultType = Text
+
+/// Outcome Results and Rubric Assessments are limited to records created on or after this date (midnight UTC).
+expression 'Results Start Date' = #date(2022, 7, 1) meta [IsParameterQuery=true, Type="Date", IsParameterQueryRequired=true]
+	lineageTag: 107ac785-c71c-499e-8d91-b64be5f6849a
+
+	annotation PBI_ResultType = Date
+

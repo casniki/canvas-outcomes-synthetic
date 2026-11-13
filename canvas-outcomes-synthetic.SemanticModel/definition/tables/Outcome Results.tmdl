@@ -1,0 +1,259 @@
+/// Fact. One row per student x learning outcome x assessed item (Canvas learning_outcome_results). Course-context results created on or after the Results Start Date parameter; deleted rows excluded. Dates are UTC.
+table 'Outcome Results'
+	lineageTag: 744eec50-dcf8-4020-892f-ce45ff1da1b9
+
+	/// Distinct students with at least one outcome result in the current filter context. Excludes test courses (Course[Is Test Course]). Includes hidden results.
+	measure 'Assessed Students' =
+			CALCULATE (
+			    DISTINCTCOUNT ( 'Outcome Results'[User ID] ),
+			    KEEPFILTERS ( 'Course'[Is Test Course] = FALSE () )
+			)
+		formatString: #,##0
+		displayFolder: Core KPIs
+		lineageTag: 535306f7-d3a5-4900-924b-fa28d7e8de38
+
+	/// Denominator for LLU mastery measures: results with a Score and Points Possible > 0 (so blanked outliers drop out). Excludes Is Hidden results and test courses.
+	measure 'Scored Results' =
+			CALCULATE (
+			    COUNTROWS ( 'Outcome Results' ),
+			    KEEPFILTERS ( 'Course'[Is Test Course] = FALSE () ),
+			    KEEPFILTERS ( 'Outcome Results'[Is Hidden] <> TRUE () ),
+			    KEEPFILTERS (
+			        FILTER (
+			            ALL ( 'Outcome Results'[Score], 'Outcome Results'[Points Possible] ),
+			            NOT ISBLANK ( 'Outcome Results'[Score] ) && 'Outcome Results'[Points Possible] > 0
+			        )
+			    )
+			)
+		formatString: #,##0
+		displayFolder: Core KPIs
+		lineageTag: 3ac99a3f-321b-4a80-9d30-60a69940e03d
+
+	/// Scored Results where Score / Points Possible >= 0.75 (LLU mastery standard). Excludes Is Hidden results and test courses.
+	measure 'Mastered Results' =
+			CALCULATE (
+			    COUNTROWS ( 'Outcome Results' ),
+			    KEEPFILTERS ( 'Course'[Is Test Course] = FALSE () ),
+			    KEEPFILTERS ( 'Outcome Results'[Is Hidden] <> TRUE () ),
+			    KEEPFILTERS (
+			        FILTER (
+			            ALL ( 'Outcome Results'[Score], 'Outcome Results'[Points Possible] ),
+			            NOT ISBLANK ( 'Outcome Results'[Score] )
+			                && 'Outcome Results'[Points Possible] > 0
+			                && 'Outcome Results'[Score] >= 0.75 * 'Outcome Results'[Points Possible]
+			        )
+			    )
+			)
+		formatString: #,##0
+		isHidden
+		displayFolder: Helpers
+		lineageTag: 277dcea5-1da3-48e0-88f5-d4b2d01d3bdd
+
+	/// Default mastery rate. Share of scored results where Score / Points Possible >= 0.75 (LLU standard). Scored = Score present and Points Possible > 0; blanked score outliers are excluded. Excludes Is Hidden results and test courses.
+	measure 'Pct at Mastery (LLU)' = DIVIDE ( [Mastered Results], [Scored Results] )
+		formatString: 0.0%
+		displayFolder: Core KPIs
+		lineageTag: 7a524b50-11e4-4bfe-875e-4ee219121b91
+
+	/// Cross-check only; use Pct at Mastery (LLU) for reporting. Share of scored results that Canvas flagged as mastery (Is Mastery = TRUE), using each outcome's own Canvas mastery threshold instead of the LLU 0.75 rule. Same denominator as Pct at Mastery (LLU) (Scored Results). Canvas Data 2 stores this flag as TRUE or blank, so blank counts as not mastered. Excludes Is Hidden results and test courses.
+	measure 'Pct at Mastery (Canvas flag)' =
+			VAR CanvasMastered =
+			    CALCULATE (
+			        COUNTROWS ( 'Outcome Results' ),
+			        KEEPFILTERS ( 'Course'[Is Test Course] = FALSE () ),
+			        KEEPFILTERS ( 'Outcome Results'[Is Hidden] <> TRUE () ),
+			        KEEPFILTERS ( 'Outcome Results'[Is Mastery] = TRUE () ),
+			        KEEPFILTERS (
+			            FILTER (
+			                ALL ( 'Outcome Results'[Score], 'Outcome Results'[Points Possible] ),
+			                NOT ISBLANK ( 'Outcome Results'[Score] ) && 'Outcome Results'[Points Possible] > 0
+			            )
+			        )
+			    )
+			RETURN
+			    DIVIDE ( CanvasMastered, [Scored Results] )
+		formatString: 0.0%
+		displayFolder: Cross-checks
+		lineageTag: 365e6407-0f53-4f68-a2ce-1d4f7fca807d
+
+	/// Share of scored results below the LLU mastery standard (Score / Points Possible < 0.75); equals 1 - Pct at Mastery (LLU). Excludes Is Hidden results and test courses.
+	measure 'Not Met Rate' = DIVIDE ( [Scored Results] - [Mastered Results], [Scored Results] )
+		formatString: 0.0%
+		displayFolder: Core KPIs
+		lineageTag: 1c41a215-0135-4aa9-b706-0526b48fe7ae
+
+	/// Share of outcomes in scope with at least one result (outside test courses) in the current filter context. Scope = Learning Outcome rows after outcome filters (Outcome Type, Program, group, etc.). Date filters narrow the numerator (outcomes assessed in the period). Course/School filters affect only the numerator, so Coverage is not meaningful when slicing by course.
+	measure Coverage =
+			VAR OutcomesInScope = COUNTROWS ( 'Learning Outcome' )
+			VAR OutcomesAssessed =
+			    COUNTROWS (
+			        FILTER (
+			            VALUES ( 'Learning Outcome'[Learning Outcome ID] ),
+			            CALCULATE ( COUNTROWS ( 'Outcome Results' ), KEEPFILTERS ( 'Course'[Is Test Course] = FALSE () ) ) > 0
+			        )
+			    )
+			RETURN
+			    DIVIDE ( OutcomesAssessed, OutcomesInScope )
+		formatString: 0.0%
+		displayFolder: Core KPIs
+		lineageTag: dcad77dc-8135-4bc9-9a11-86be727594fb
+
+	/// Change in Pct at Mastery (LLU) versus the same period one year earlier, in percentage points (e.g. Academic Year 2024-25 vs 2023-24). Blank when either year has no scored results. Same exclusions as Pct at Mastery (LLU).
+	measure 'Pct at Mastery YoY' =
+			VAR CurrentRate = [Pct at Mastery (LLU)]
+			VAR PriorRate = CALCULATE ( [Pct at Mastery (LLU)], DATEADD ( 'Date'[Date], -1, YEAR ) )
+			RETURN
+			    IF ( NOT ISBLANK ( CurrentRate ) && NOT ISBLANK ( PriorRate ), CurrentRate - PriorRate )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Core KPIs
+		lineageTag: 8b347984-bf34-4007-96b7-ad0461fde30f
+
+	/// Text label 'Data as of <date>' using the latest Assessed Date (UTC) in Outcome Results. Ignores all slicers and filters so every page shows the same data horizon.
+	measure 'Data As Of' = "Data as of " & FORMAT ( CALCULATE ( MAX ( 'Outcome Results'[Assessed Date] ), REMOVEFILTERS () ), "mmm d, yyyy" )
+		displayFolder: Report Labels
+		lineageTag: 68a3a289-98c9-4261-9378-923bd18f39c4
+
+	/// 1 when the current filter context has at least 20 scored results and a Not Met Rate of 0 (every scored result at or above the LLU 0.75 standard); otherwise blank. Flags assessment that may not be discriminating. Intended at Learning Outcome[Program] grain with Outcome Type = PLO. Same exclusions as Scored Results (Is Hidden results, test courses).
+	measure 'Watchlist Flag' = IF ( [Scored Results] >= 20 && [Not Met Rate] = 0, 1 )
+		formatString: 0
+		displayFolder: Assessment Quality
+		lineageTag: b03c22ac-dc46-41ec-aeef-7e015175beb2
+
+	/// Number of programs (Learning Outcome[Program]) whose Watchlist Flag = 1 in the current filter context: at least 20 scored results and 0% Not Met. Unmapped (blank) programs are excluded. Returns 0, not blank, when no program qualifies.
+	measure 'Programs on Watchlist' =
+			COUNTROWS (
+			    FILTER (
+			        VALUES ( 'Learning Outcome'[Program] ),
+			        NOT ISBLANK ( 'Learning Outcome'[Program] ) && [Watchlist Flag] = 1
+			    )
+			) + 0
+		formatString: #,##0
+		displayFolder: Assessment Quality
+		lineageTag: c291056f-67f3-4ef0-ab81-c34f1a141333
+
+	/// Not Met Rate across every outcome type (Core Value, Institutional Outcome, PLO, Accreditation Standard, Course Outcome), ignoring any Outcome Type filter or slicer. Other filters still apply. Used beside the PLO-filtered Not Met Rate on the watchlist page.
+	measure 'All Outcomes Not Met Rate' = CALCULATE ( [Not Met Rate], REMOVEFILTERS ( 'Learning Outcome'[Outcome Type] ) )
+		formatString: 0.0%
+		displayFolder: Assessment Quality
+		lineageTag: f0531a9d-9be2-410d-a460-f2acbaa60b30
+
+	column 'User ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 6a3a3d27-a985-481f-bbe1-d1588a3e5213
+		summarizeBy: none
+		sourceColumn: user_id
+
+	column 'Course ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 2652addb-c1a6-4c2a-8505-75001e52646e
+		summarizeBy: none
+		sourceColumn: context_id
+
+	column 'Learning Outcome ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: aa05d8c1-cd60-4282-96b2-c07795da5484
+		summarizeBy: none
+		sourceColumn: learning_outcome_id
+
+	column 'Assignment ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 8d707be8-2c9a-4a2d-8409-f53e9a82099f
+		summarizeBy: none
+		sourceColumn: assignment_id
+
+	column 'Rubric Association ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: c502817f-ee71-4660-9c68-b4b0cdf4fbf0
+		summarizeBy: none
+		sourceColumn: rubric_association_id
+
+	/// Canvas object the result was assessed on. Quizzes::Quiz for classic quizzes; blank for rubric-based results (their assignment comes from the rubric association).
+	column 'Associated Asset Type'
+		dataType: string
+		lineageTag: 98fd7170-e5ed-4161-b569-22e2ddd14c00
+		sourceColumn: associated_asset_type
+
+	/// Canvas artifact that produced the result (e.g. RubricAssessment, Submission, Quizzes::QuizSubmission).
+	column 'Assessment Source'
+		dataType: string
+		lineageTag: e22831cb-e29b-412e-8c8b-79c50f93696a
+		sourceColumn: artifact_type
+
+	/// Outcome score awarded (points on the outcome's mastery scale). Blank when Is Score Outlier is true (negative scores).
+	column Score
+		dataType: decimal
+		lineageTag: ece175db-66c2-4ede-b3af-7afdd2dbf374
+		summarizeBy: sum
+		sourceColumn: score
+
+	/// Maximum outcome points possible for this result.
+	column 'Points Possible'
+		dataType: decimal
+		lineageTag: 9de0cd27-f539-4b1f-b6ae-2fe8ae7c5c48
+		summarizeBy: sum
+		sourceColumn: possible
+
+	/// Score as a fraction of the outcome's points possible, as stored by Canvas (0-1), 4 decimal places. Blank when Is Score Outlier is true.
+	column Percent
+		dataType: decimal
+		lineageTag: 36fa019e-7bc8-41f3-bb84-945ff1d14055
+		summarizeBy: average
+		sourceColumn: percent
+
+	/// True when Canvas recorded the student as meeting mastery on this result.
+	column 'Is Mastery'
+		dataType: boolean
+		lineageTag: 216cc1b2-0a41-491d-8886-b1d36a4bf75b
+		sourceColumn: mastery
+
+	/// True when the result is hidden from the student/Learning Mastery Gradebook (e.g. rubric set to hide outcome results).
+	column 'Is Hidden'
+		dataType: boolean
+		lineageTag: bdf0f52e-8b60-4d3f-9ec4-55777facf4e6
+		sourceColumn: hidden
+
+	column Attempt
+		dataType: int64
+		lineageTag: 0dd03e27-8829-4144-a760-da316f2c2392
+		summarizeBy: none
+		sourceColumn: attempt
+
+	/// UTC calendar date of assessed_at (falls back to created_at when assessed_at is empty).
+	column 'Assessed Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 7319d1c0-72d2-464f-932d-8a2c211d365a
+		summarizeBy: none
+		sourceColumn: assessed_date
+
+		annotation SummarizationSetBy = Automatic
+
+	/// True when the raw outcome score was negative (seen as -1 out of 0) or not storable. Score and Percent are blank on these rows.
+	column 'Is Score Outlier'
+		dataType: boolean
+		isHidden
+		lineageTag: d1760bef-e6c3-4d78-b7ba-3a4003e485ae
+		sourceColumn: is_score_outlier
+
+	partition 'Outcome Results' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "outcome_results.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"user_id", Int64.Type}, {"context_id", Int64.Type}, {"learning_outcome_id", Int64.Type}, {"assignment_id", Int64.Type}, {"rubric_association_id", Int64.Type}, {"associated_asset_type", type text}, {"artifact_type", type text}, {"score", Currency.Type}, {"possible", Currency.Type}, {"percent", Currency.Type}, {"mastery", type logical}, {"hidden", type logical}, {"attempt", Int64.Type}, {"assessed_date", type datetime}, {"is_score_outlier", type logical}}, "en-US")
+				in
+				    Typed
+

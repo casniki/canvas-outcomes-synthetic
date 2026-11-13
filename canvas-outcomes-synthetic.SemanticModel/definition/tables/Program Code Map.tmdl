@@ -1,0 +1,48 @@
+/// Editable lookup (edit in Power Query): program codes used in Canvas and the program they stand for. Used by Learning Outcome[Program] for (1) PLO titles/groups where the code is a whole word next to PLO ('PLO DDS 9', 'MHA PLO 3', 'BS/TM PLO 2') and (2) cohort shell course names ('~DH Class of 2026'). Program names must match the LLU program register exactly. No relationships (lookup only).
+table 'Program Code Map'
+	isHidden
+	lineageTag: 98e70376-762c-4f81-bc84-c8249149e3b8
+
+	/// Code as it appears in Canvas, e.g. DDS in 'PLO DDS 9' or DH in '~DH Class of 2026'.
+	column 'Program Code'
+		dataType: string
+		lineageTag: cd027e26-7d0e-48f3-9ee5-56df40145532
+		sourceColumn: Program Code
+
+	/// Program name exactly as in the LLU program register.
+	column Program
+		dataType: string
+		lineageTag: 9835840a-6110-4e24-8526-5c119a0d7005
+		sourceColumn: Program
+
+	/// Code = a program code used next to PLO in titles/groups and in cohort shell names. Department alias = a Canvas department name from the department rules, translated to its register name.
+	column 'Code Type'
+		dataType: string
+		lineageTag: a43e86b8-7a57-400f-bec0-ee3d6de039f4
+		sourceColumn: Code Type
+
+	partition 'Program Code Map' = m
+		mode: import
+		source =
+				let
+				    // Edit this list to add codes, aliases or rename programs. Program names must match the LLU program register exactly.
+				    // Code Type = "Code": matched as a whole word next to PLO in titles/groups, and as {code} in '~{code} Class of YYYY' cohort shells (case-insensitive).
+				    // Code Type = "Department alias": a Canvas department (account) name returned by the department rules, translated to its register name.
+				    Source = #table(
+				        type table [Program Code = text, Code Type = text, Program = text],
+				        {
+				            {"DDS", "Code", "Dentistry — D.D.S."},
+				            {"DH", "Code", "Dental Hygiene — B.S."},
+				            {"IDP", "Code", "International Dentist Program — D.D.S."},
+				            {"MHA", "Code", "Health-Care Administration — M.H.A."},
+				            {"BS/TM", "Code", "Communication Sciences and Disorders — B.S."},
+				            {"Dental Hygiene", "Department alias", "Dental Hygiene — B.S."},
+				            {"Communication Sci & Disorders", "Department alias", "Communication Sciences and Disorders — M.S."},
+				            {"Hlth Info, Info Mgmt, & Admin", "Department alias", "Health Information and Informatics — B.S."},
+				            // Closed program; no outcome results as of 2026-11-13.
+				            {"Orthotics and Prosthetics", "Department alias", "Orthotics and Prosthetics — M.S."}
+				        }
+				    )
+				in
+				    Source
+

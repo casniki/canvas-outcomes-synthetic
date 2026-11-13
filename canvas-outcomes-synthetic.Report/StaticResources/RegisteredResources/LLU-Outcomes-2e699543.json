@@ -1,0 +1,279 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.153.json",
+  "name": "LLU-Outcomes-2e699543.json",
+  "dataColors": [
+    "#0B2545",
+    "#8FCBEB",
+    "#C8952A",
+    "#5C7A99",
+    "#13315C",
+    "#B8D8EE",
+    "#E3C27F",
+    "#7F8C9A"
+  ],
+  "good": "#2E7D4F",
+  "neutral": "#C8952A",
+  "bad": "#B23A3A",
+  "maximum": "#0B2545",
+  "center": "#8FCBEB",
+  "minimum": "#E8F5FB",
+  "null": "#7F8C9A",
+  "foreground": "#1F2D3D",
+  "background": "#FFFFFF",
+  "tableAccent": "#0B2545",
+  "textClasses": {
+    "callout": {
+      "fontSize": 32,
+      "fontFace": "Cambria",
+      "color": "#0B2545"
+    },
+    "title": {
+      "fontSize": 15,
+      "fontFace": "Calibri",
+      "color": "#0B2545"
+    },
+    "header": {
+      "fontSize": 14,
+      "fontFace": "Cambria",
+      "color": "#0B2545"
+    },
+    "label": {
+      "fontSize": 12,
+      "fontFace": "Calibri",
+      "color": "#1F2D3D"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "border": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#D9E2EC"
+              }
+            },
+            "radius": 8
+          }
+        ],
+        "dropShadow": [
+          {
+            "show": false
+          }
+        ],
+        "padding": [
+          {
+            "top": 8,
+            "bottom": 8,
+            "left": 8,
+            "right": 8
+          }
+        ],
+        "title": [
+          {
+            "fontFamily": "Calibri",
+            "fontSize": 15,
+            "bold": true,
+            "fontColor": {
+              "solid": {
+                "color": "#0B2545"
+              }
+            }
+          }
+        ],
+        "categoryAxis": [
+          {
+            "gridlineStyle": "dotted",
+            "gridlineColor": {
+              "solid": {
+                "color": "#EEF2F6"
+              }
+            }
+          }
+        ],
+        "valueAxis": [
+          {
+            "gridlineStyle": "dotted",
+            "gridlineColor": {
+              "solid": {
+                "color": "#EEF2F6"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#FFFFFF"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    },
+    "tableEx": {
+      "*": {
+        "columnHeaders": [
+          {
+            "autoSizeColumnWidth": true,
+            "columnAdjustment": "growToFit"
+          }
+        ]
+      }
+    },
+    "pivotTable": {
+      "*": {
+        "columnHeaders": [
+          {
+            "autoSizeColumnWidth": true,
+            "columnAdjustment": "growToFit"
+          }
+        ]
+      }
+    },
+    "cardVisual": {
+      "*": {
+        "value": [
+          {
+            "bold": true,
+            "$id": "default"
+          }
+        ],
+        "label": [
+          {
+            "show": true,
+            "$id": "default"
+          }
+        ],
+        "cardCalloutArea": [
+          {
+            "paddingUniform": 0
+          }
+        ],
+        "title": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "textbox": {
+      "*": {
+        "padding": [
+          {
+            "top": 0,
+            "bottom": 0,
+            "left": 0,
+            "right": 0
+          }
+        ],
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "border": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "barChart": {
+      "*": {
+        "labels": [
+          {
+            "show": true,
+            "fontSize": 12
+          }
+        ],
+        "valueAxis": [
+          {
+            "show": false,
+            "gridlineShow": false,
+            "showAxisTitle": false
+          }
+        ],
+        "categoryAxis": [
+          {
+            "show": true,
+            "fontSize": 13,
+            "showAxisTitle": false,
+            "innerPadding": 20,
+            "gridlineShow": false
+          }
+        ],
+        "dataPoint": [
+          {
+            "borderShow": false
+          }
+        ],
+        "legend": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "lineChart": {
+      "*": {
+        "lineStyles": [
+          {
+            "strokeWidth": 3,
+            "lineChartType": "linear",
+            "areaShow": false
+          }
+        ],
+        "dataPoint": [
+          {
+            "transparency": 85
+          }
+        ],
+        "labels": [
+          {
+            "show": true,
+            "labelPosition": "Above",
+            "fontSize": 12,
+            "color": {
+              "solid": {
+                "color": "#1F2D3D"
+              }
+            },
+            "labelDensity": 100
+          }
+        ],
+        "legend": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "slicer": {
+      "*": {
+        "header": [
+          {
+            "fontFamily": "Calibri",
+            "textSize": 13,
+            "outlineStyle": 0
+          }
+        ],
+        "items": [
+          {
+            "fontFamily": "Calibri",
+            "textSize": 13,
+            "outlineStyle": 0,
+            "padding": 2
+          }
+        ]
+      }
+    }
+  }
+}

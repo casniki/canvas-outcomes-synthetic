@@ -1,0 +1,52 @@
+/// Dimension. One row per Canvas user (users, deleted excluded) with SIS User ID and Login ID from pseudonyms (non-deleted logins; highest value per user when several exist).
+table User
+	lineageTag: 440ee435-b8df-4e71-94f0-988172a8574f
+
+	column 'User ID'
+		dataType: int64
+		isHidden
+		lineageTag: 47d7800d-6368-497f-ad7a-232eb333822d
+		summarizeBy: none
+		sourceColumn: id
+
+	column Name
+		dataType: string
+		lineageTag: 40bdc33b-6cee-4117-81e3-31a50cee70a0
+		sourceColumn: name
+
+	/// Last, First format.
+	column 'Sortable Name'
+		dataType: string
+		lineageTag: 5ab4d833-dec6-449c-b14f-1997dbdd8b8b
+		sourceColumn: sortable_name
+
+	/// Student information system ID from pseudonyms.sis_user_id.
+	column 'SIS User ID'
+		dataType: string
+		lineageTag: 5c9693c9-cd7a-4a17-a73b-bdd088848e75
+		sourceColumn: sis_user_id
+
+	/// Canvas login (pseudonyms.unique_id).
+	column 'Login ID'
+		dataType: string
+		lineageTag: 8d97f5b1-e21f-48f3-ade5-da9fed42e314
+		sourceColumn: login_id
+
+	/// Canvas user workflow_state (registered, pre_registered, creation_pending).
+	column 'User Status'
+		dataType: string
+		lineageTag: cc2bb5aa-22f9-459f-a3ce-5db688c11295
+		sourceColumn: workflow_state
+
+	partition User = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "user.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"name", type text}, {"sortable_name", type text}, {"sis_user_id", type text}, {"login_id", type text}, {"workflow_state", type text}}, "en-US")
+				in
+				    Typed
+

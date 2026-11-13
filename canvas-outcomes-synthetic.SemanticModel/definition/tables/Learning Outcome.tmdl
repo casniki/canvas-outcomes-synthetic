@@ -1,0 +1,190 @@
+/// Dimension. One row per Canvas learning outcome (learning_outcomes, deleted excluded). Each outcome is assigned one Learning Outcome Group via content_tags (learning_outcome_association): the group in the outcome's own context when one exists, otherwise the lowest group ID it is linked to.
+table 'Learning Outcome'
+	lineageTag: b992d378-48ff-441c-9118-5805eb65e14c
+
+	column 'Learning Outcome ID'
+		dataType: int64
+		isHidden
+		lineageTag: db223f0c-ca5e-47cd-9371-21be776e1d0e
+		summarizeBy: none
+		sourceColumn: id
+
+	/// Outcome name as authored in Canvas (learning_outcomes.short_description).
+	column 'Outcome Title'
+		dataType: string
+		lineageTag: 86db8e3d-7d72-4b8e-8bbc-eb1be741d0da
+		sourceColumn: short_description
+
+	/// Optional friendly name shown to students; often blank.
+	column 'Display Name'
+		dataType: string
+		lineageTag: 0fc033cf-ffea-4bc9-a085-0f69dd337c10
+		sourceColumn: display_name
+
+	/// Where the outcome is defined: Account (shared/institutional) or Course (course-local).
+	column 'Outcome Context Type'
+		dataType: string
+		lineageTag: e4f81c67-e0cb-4fae-af3f-cc444479fcf0
+		sourceColumn: context_type
+
+	/// How Canvas rolls up repeated results: decaying_average, n_mastery, latest, highest, average.
+	column 'Calculation Method'
+		dataType: string
+		lineageTag: c3265bb9-2670-44eb-9cdf-d8f2aed8ac27
+		sourceColumn: calculation_method
+
+	/// Parameter for the calculation method (decay weight % or n for n_mastery).
+	column 'Calculation Value'
+		dataType: int64
+		lineageTag: ff95dfbf-b157-4f7e-9a3f-e6555a6aa08b
+		summarizeBy: none
+		sourceColumn: calculation_int
+
+	/// External identifier from outcome imports (e.g. accreditation standard code).
+	column 'Vendor GUID'
+		dataType: string
+		lineageTag: d52c8c3f-503b-4f93-940e-f1fb9ef882de
+		sourceColumn: vendor_guid
+
+	column 'Learning Outcome Group ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: a7fa6e09-187d-403f-a913-dc5214cef969
+		summarizeBy: none
+		sourceColumn: learning_outcome_group_id
+
+	/// Canvas course that owns a course-level outcome (learning_outcomes.context_id when context_type = Course). Blank for account-level outcomes. Used to derive Program.
+	column 'Owning Course ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 112ddccb-2bab-49dd-99cb-e7d41f24201b
+		summarizeBy: none
+		sourceColumn: owning_course_id
+
+	/// Outcome classification, first match wins: Core Value (group path contains 'LLU Values Alignment'); Institutional Outcome (account group 'Loma Linda University > SLO n', title starting 'SLO-', or ILO / Institutional Learning Outcomes / 'Loma Linda University student Learning Outcomes' in path or title); PLO (whole word PLO or 'Program Learning Outcome' in path or title); Accreditation Standard (CODA, CAPE or NAPLEX); otherwise Course Outcome.
+	column 'Outcome Type' =
+			VAR p = RELATED ( 'Learning Outcome Group'[Group Path] )
+			VAR t = 'Learning Outcome'[Outcome Title]
+			VAR n =
+			    " "
+			        & UPPER (
+			            SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE (
+			                p & " | " & t, "/", " " ), "(", " " ), ")", " " ), ":", " " ), "#", " " ), "-", " " ), ".", " " ), ",", " " )
+			        ) & " "
+			VAR IsCoreValue = CONTAINSSTRING ( p, "LLU Values Alignment" )
+			VAR IsInstitutional =
+			    ( 'Learning Outcome'[Outcome Context Type] = "Account" && LEFT ( p, 28 ) = "Loma Linda University > SLO " )
+			        || LEFT ( UPPER ( t ), 4 ) = "SLO-"
+			        || COUNTROWS ( FILTER ( { " ILO ", " ILOS ", " ILO1", " ILO2", " ILO3", " ILO4", " ILO5", "INSTITUTIONAL LEARNING OUTCOME", "LOMA LINDA UNIVERSITY STUDENT LEARNING OUTCOME" }, CONTAINSSTRING ( n, [Value] ) ) ) > 0
+			VAR IsPLO =
+			    COUNTROWS ( FILTER ( { " PLO ", " PLOS ", " PLO1", " PLO2", " PLO3", " PLO4", " PLO5", " PLO6", " PLO7", " PLO8", " PLO9", "PROGRAM LEARNING OUTCOME" }, CONTAINSSTRING ( n, [Value] ) ) ) > 0
+			VAR IsAccreditation =
+			    COUNTROWS ( FILTER ( { " CODA ", " CAPE ", " NAPLEX " }, CONTAINSSTRING ( n, [Value] ) ) ) > 0
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        IsCoreValue, "Core Value",
+			        IsInstitutional, "Institutional Outcome",
+			        IsPLO, "PLO",
+			        IsAccreditation, "Accreditation Standard",
+			        "Course Outcome"
+			    )
+		displayFolder: Classification
+		lineageTag: 09e9dfb2-7e7a-4f4a-b4e3-d2f2e6fe24e3
+
+	/// Which rule set Program (PLOs only; blank for other types), first match wins: Catalog path (group under 'LLU Program Learning Outcomes > School > Program'); School path (account group 'School of ... > Program > ...'); Title code (a Program Code Map code as a whole word next to PLO in the title or group path, e.g. 'PLO DDS 9', 'MHA PLO 3'); Cohort shell (owning course '~{code} Class of YYYY'); Owning-course department (owning course in a 'School of ...' account, excluding non-program accounts and school catch-alls); Recorded-course cohort shell / Recorded-course department (same course rules applied to the non-test course where most of the outcome's results were recorded); Unmapped. Department rules are interim until the Course SIS ID to Banner program crosswalk is added.
+	column 'Program Source' =
+			VAR r = 'Learning Outcome'[Program Resolution]
+			RETURN IF ( NOT ISBLANK ( r ), LEFT ( r, SEARCH ( "|", r ) - 1 ) )
+		displayFolder: Classification
+		lineageTag: 204e899b-5ae7-4240-8849-bab48ea67bed
+
+	/// Program for PLO outcomes (blank for other types and for unmapped PLOs); see Program Source for the rule used. Catalog path, title code and cohort shell rules give register-style names ('Program — Degree'); department rules give Canvas account names, an interim source until the Banner program crosswalk is added.
+	column Program =
+			VAR r = 'Learning Outcome'[Program Resolution]
+			VAR prog = IF ( NOT ISBLANK ( r ), MID ( r, SEARCH ( "|", r ) + 1, 500 ) )
+			RETURN IF ( prog <> "", prog )
+		displayFolder: Classification
+		lineageTag: 1943e763-6406-46cf-9ae6-0969c2e979fb
+
+	/// Internal: '{Program Source}|{Program}' for PLOs, blank otherwise. Program Source and Program read from this column. Rules, first match wins: Catalog path; School path; Title code (Program Code Map Code Type = Code, as a whole word next to PLO in the title or group path); Cohort shell (owning course '~{code} Class of YYYY'); Owning-course department; Recorded-course cohort shell / Recorded-course department (the non-test course where most of the outcome's results were recorded); Unmapped. Department rules translate the Canvas department name through Program Code Map rows with Code Type = Department alias when one exists.
+	column 'Program Resolution' =
+			VAR p = RELATED ( 'Learning Outcome Group'[Group Path] )
+			VAR pipe = SUBSTITUTE ( p, " > ", "|" )
+			VAR n =
+			    " "
+			        & UPPER (
+			            SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE (
+			                'Learning Outcome'[Outcome Title] & " | " & p, ":", " " ), "#", " " ), "-", " " ), "(", " " ), ")", " " ), ",", " " ), ".", " " )
+			        ) & " "
+			VAR NonProgramAccounts = { "Communities", "Development Shells", "Migrated Courses", "Course Developer", "Backups", "Archive", "Exams", "Templates" }
+			VAR Codes = FILTER ( 'Program Code Map', 'Program Code Map'[Code Type] = "Code" )
+			-- Title code: a mapped code as a whole word directly before or after PLO
+			VAR TitleProgram =
+			    MAXX (
+			        FILTER (
+			            Codes,
+			            VAR c = UPPER ( 'Program Code Map'[Program Code] )
+			            RETURN
+			                CONTAINSSTRING ( n, " PLO " & c & " " )
+			                    || CONTAINSSTRING ( n, " " & c & " PLO " )
+			                    || CONTAINSSTRING ( n, " " & c & " PLOS " )
+			        ),
+			        'Program Code Map'[Program]
+			    )
+			-- Owning course
+			VAR OwnId = 'Learning Outcome'[Owning Course ID]
+			VAR OwnName = IF ( NOT ISBLANK ( OwnId ), LOOKUPVALUE ( 'Course'[Course Name], 'Course'[Course ID], OwnId ) )
+			VAR OwnSchool = IF ( NOT ISBLANK ( OwnId ), LOOKUPVALUE ( 'Course'[School], 'Course'[Course ID], OwnId ) )
+			VAR OwnDept = IF ( NOT ISBLANK ( OwnId ), LOOKUPVALUE ( 'Course'[Department], 'Course'[Course ID], OwnId ) )
+			VAR OwnCode = IF ( LEFT ( OwnName, 1 ) = "~" && CONTAINSSTRING ( OwnName, " Class of " ), MID ( OwnName, 2, SEARCH ( " Class of ", OwnName ) - 2 ) )
+			VAR OwnCohort = IF ( NOT ISBLANK ( OwnCode ), LOOKUPVALUE ( 'Program Code Map'[Program], 'Program Code Map'[Program Code], OwnCode, 'Program Code Map'[Code Type], "Code" ) )
+			VAR OwnDeptOk = LEFT ( OwnSchool, 10 ) = "School of " && NOT ISBLANK ( OwnDept ) && NOT ( OwnDept IN NonProgramAccounts ) && LEFT ( OwnDept, 10 ) <> "School of "
+			VAR OwnDeptAlias = IF ( OwnDeptOk, LOOKUPVALUE ( 'Program Code Map'[Program], 'Program Code Map'[Program Code], OwnDept, 'Program Code Map'[Code Type], "Department alias" ) )
+			VAR OwnDeptProgram = IF ( NOT ISBLANK ( OwnDeptAlias ), OwnDeptAlias, OwnDept )
+			-- Recorded course: the non-test course with the most results for this outcome
+			VAR Recorded = FILTER ( RELATEDTABLE ( 'Outcome Results' ), RELATED ( 'Course'[Is Test Course] ) <> TRUE () )
+			VAR ByCourse = GROUPBY ( Recorded, 'Outcome Results'[Course ID], "n", SUMX ( CURRENTGROUP (), 1 ) )
+			VAR RecId = MAXX ( TOPN ( 1, ByCourse, [n], DESC, 'Outcome Results'[Course ID], ASC ), 'Outcome Results'[Course ID] )
+			VAR RecName = IF ( NOT ISBLANK ( RecId ), LOOKUPVALUE ( 'Course'[Course Name], 'Course'[Course ID], RecId ) )
+			VAR RecSchool = IF ( NOT ISBLANK ( RecId ), LOOKUPVALUE ( 'Course'[School], 'Course'[Course ID], RecId ) )
+			VAR RecDept = IF ( NOT ISBLANK ( RecId ), LOOKUPVALUE ( 'Course'[Department], 'Course'[Course ID], RecId ) )
+			VAR RecCode = IF ( LEFT ( RecName, 1 ) = "~" && CONTAINSSTRING ( RecName, " Class of " ), MID ( RecName, 2, SEARCH ( " Class of ", RecName ) - 2 ) )
+			VAR RecCohort = IF ( NOT ISBLANK ( RecCode ), LOOKUPVALUE ( 'Program Code Map'[Program], 'Program Code Map'[Program Code], RecCode, 'Program Code Map'[Code Type], "Code" ) )
+			VAR RecDeptOk = LEFT ( RecSchool, 10 ) = "School of " && NOT ISBLANK ( RecDept ) && NOT ( RecDept IN NonProgramAccounts ) && LEFT ( RecDept, 10 ) <> "School of "
+			VAR RecDeptAlias = IF ( RecDeptOk, LOOKUPVALUE ( 'Program Code Map'[Program], 'Program Code Map'[Program Code], RecDept, 'Program Code Map'[Code Type], "Department alias" ) )
+			VAR RecDeptProgram = IF ( NOT ISBLANK ( RecDeptAlias ), RecDeptAlias, RecDept )
+			RETURN
+			    IF (
+			        'Learning Outcome'[Outcome Type] = "PLO",
+			        SWITCH (
+			            TRUE (),
+			            CONTAINSSTRING ( p, "LLU Program Learning Outcomes" ) && PATHLENGTH ( pipe ) >= 4, "Catalog path|" & PATHITEM ( pipe, 4 ),
+			            'Learning Outcome'[Outcome Context Type] = "Account" && LEFT ( p, 10 ) = "School of " && PATHLENGTH ( pipe ) >= 2, "School path|" & PATHITEM ( pipe, 2 ),
+			            NOT ISBLANK ( TitleProgram ), "Title code|" & TitleProgram,
+			            NOT ISBLANK ( OwnCohort ), "Cohort shell|" & OwnCohort,
+			            OwnDeptOk, "Owning-course department|" & OwnDeptProgram,
+			            NOT ISBLANK ( RecCohort ), "Recorded-course cohort shell|" & RecCohort,
+			            RecDeptOk, "Recorded-course department|" & RecDeptProgram,
+			            "Unmapped|"
+			        )
+			    )
+		isHidden
+		isAvailableInMdx: false
+		displayFolder: Classification
+		lineageTag: bffebb7a-adcc-44c4-9a45-bba26bea7b84
+
+	partition 'Learning Outcome' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "learning_outcome.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"short_description", type text}, {"display_name", type text}, {"context_type", type text}, {"calculation_method", type text}, {"calculation_int", Int64.Type}, {"vendor_guid", type text}, {"learning_outcome_group_id", Int64.Type}, {"owning_course_id", Int64.Type}}, "en-US")
+				in
+				    Typed
+

@@ -1,0 +1,85 @@
+/// Fact. One row per completed rubric assessment (Canvas rubric_assessments) created on or after the Results Start Date parameter. Course and assignment come from the rubric association. Source table has no workflow_state, so no deleted filter applies. Dates are UTC.
+table 'Rubric Assessments'
+	lineageTag: 14d29ae8-8757-4b4f-876e-4eb8dd24196d
+
+	/// The assessed student (rubric_assessments.user_id).
+	column 'User ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: fe4d1409-160f-4312-82f8-7b2e5ea4eb72
+		summarizeBy: none
+		sourceColumn: user_id
+
+	column 'Rubric Association ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: c277e416-4052-4538-92f4-05a05fe1a07c
+		summarizeBy: none
+		sourceColumn: rubric_association_id
+
+	column 'Course ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 83085791-5891-46da-b4a9-dd4539f35b4d
+		summarizeBy: none
+		sourceColumn: course_id
+
+	column 'Assignment ID'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		lineageTag: 3f26c808-7d14-49f8-a270-49e7e14085f4
+		summarizeBy: none
+		sourceColumn: assignment_id
+
+	/// grading, peer_review or self_assessment.
+	column 'Assessment Type'
+		dataType: string
+		lineageTag: 952adeb3-817e-4eb6-962d-19c64969e57d
+		sourceColumn: assessment_type
+
+	/// Total rubric points awarded. Blank when Is Score Outlier is true (negative, above 1.5x rubric points possible, or corrupt).
+	column Score
+		dataType: decimal
+		lineageTag: d121be56-263b-4639-9544-5b91f8e7e4b9
+		summarizeBy: sum
+		sourceColumn: score
+
+	column Attempt
+		dataType: int64
+		lineageTag: 17a34be5-bc01-4d34-a4ca-4340a999587d
+		summarizeBy: none
+		sourceColumn: artifact_attempt
+
+	/// UTC calendar date the rubric assessment was created.
+	column 'Assessed Date'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: ed3655fc-05dc-44cd-8b39-3c0d55f0d6d4
+		summarizeBy: none
+		sourceColumn: assessed_date
+
+		annotation SummarizationSetBy = Automatic
+
+	/// True when the raw score was negative, above 1.5x the rubric's points possible, or not storable (e.g. 2.2E+29). Score is blank on these rows.
+	column 'Is Score Outlier'
+		dataType: boolean
+		isHidden
+		lineageTag: 02698e37-23cb-4fc0-9703-303297026852
+		sourceColumn: is_score_outlier
+
+	partition 'Rubric Assessments' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "rubric_assessments.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"user_id", Int64.Type}, {"rubric_association_id", Int64.Type}, {"course_id", Int64.Type}, {"assignment_id", Int64.Type}, {"assessment_type", type text}, {"score", Currency.Type}, {"artifact_attempt", Int64.Type}, {"assessed_date", type datetime}, {"is_score_outlier", type logical}}, "en-US")
+				in
+				    Typed
+

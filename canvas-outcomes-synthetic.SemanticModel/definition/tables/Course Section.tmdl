@@ -1,0 +1,39 @@
+/// Dimension. One row per Canvas course section (course_sections, deleted excluded). Filters Enrollments only; Outcome Results carry no section.
+table 'Course Section'
+	lineageTag: 0a3ba24e-93ca-4fb7-a233-0a55f4c36255
+
+	column 'Course Section ID'
+		dataType: int64
+		isHidden
+		lineageTag: 1c72a12f-f650-4533-bc3b-d2d354e963ab
+		summarizeBy: none
+		sourceColumn: id
+
+	column 'Section Name'
+		dataType: string
+		lineageTag: d944b4ec-2ddb-44ce-8239-c8c8a3f4213e
+		sourceColumn: name
+
+	column 'Section SIS ID'
+		dataType: string
+		lineageTag: 3083b7f0-1b52-4aeb-8757-7218d2531864
+		sourceColumn: sis_source_id
+
+	/// True for the section Canvas creates automatically when a course has no SIS sections.
+	column 'Is Default Section'
+		dataType: boolean
+		lineageTag: 66685e64-1a8a-4348-9082-da73aab02d31
+		sourceColumn: default_section
+
+	partition 'Course Section' = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "course_section.csv"), [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				    // Empty CSV fields are nulls
+				    Nulls = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, Table.ColumnNames(Promoted)),
+				    Typed = Table.TransformColumnTypes(Nulls, {{"id", Int64.Type}, {"name", type text}, {"sis_source_id", type text}, {"default_section", type logical}}, "en-US")
+				in
+				    Typed
+
