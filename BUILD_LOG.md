@@ -119,3 +119,11 @@ Department rules translate Canvas department names to register program names thr
   - The roster was read in memory only. Nothing from it was written to disk.
   - Code, documentation, metadata and the model matched no real person's name; the only hits were ordinary words and place names.
   - No generated student name matches a real user.
+
+## 2026-11-13 — Header icons off
+
+- **What changed:** header icons are hidden on every visual in reading view. These are the icons such as focus mode, filter and more options, which got in the way when viewing.
+- **Per visual, not theme-wide:** the setting is stored on each visual in `tools/build_report.js`, so a single visual can show them again.
+  - Temporarily: select the visual in Desktop and turn on **Format → General → Header icons**. A rebuild resets this.
+  - Permanently: pass `{ headerIcons: true }` as the last argument to that visual's `visual(...)` call in the generator.
+- **Desktop editing view:** Desktop still shows the header on hover while you edit.

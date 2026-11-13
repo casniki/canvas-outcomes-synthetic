@@ -86,13 +86,20 @@ const inFilter = (alias, entity, column, values) => ({
 });
 
 // ---------- visual builders ----------
+// Each visual's header icons (focus mode, filter, more options...) are hidden in reading view.
+// This is set per visual, not in the theme, so one visual can turn them back on:
+// in Desktop (Format > General > Header icons) or here with { headerIcons: true }.
 function visual(pageKey, key, pos, body, extra = {}) {
+  const { headerIcons = false, ...rest } = extra;
+  if (!headerIcons) {
+    body = { ...body, visualContainerObjects: { ...(body.visualContainerObjects || {}), visualHeader: [{ properties: { show: bool(false) } }] } };
+  }
   return {
     $schema: SCHEMA.visual,
     name: hash(`${pageKey}:${key}`, 20),
     position: { x: pos.x, y: pos.y, z: pos.z, height: pos.h, width: pos.w, tabOrder: pos.z },
     visual: body,
-    ...extra,
+    ...rest,
   };
 }
 
