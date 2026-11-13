@@ -342,14 +342,26 @@ const KPI_H = 112;              // KPI card row height
 const MAIN_Y = CY + KPI_H + 24; // main visuals start below the KPI row (272)
 const MAIN_H = CB - MAIN_Y;     // 776
 
+// Synthetic build only: a banner on every page saying the data is generated.
+// (The production generator has no banner; this is a deliberate difference.)
+const SYNTHETIC_NOTE = 'Every student, course and result in this report is generated. Figures are invented and describe no real program or person.';
+
+function syntheticBanner() {
+  const v = textbox(SYNTHETIC_NOTE, { font: BODY, size: '12pt', clr: NAVY, bg: GOLD_TINT, padding: 12 });
+  const runs = v.objects.general[0].properties.paragraphs[0].textRuns;
+  runs.unshift({ value: 'Synthetic data. ', textStyle: { ...runs[0].textStyle, fontWeight: 'bold' } });
+  return v;
+}
+
 function chrome(pageKey, pageTitle, subtitle) {
   return [
-    visual(pageKey, 'page_title', { x: 32, y: 24, w: 1300, h: 56, z: 1000 },
+    visual(pageKey, 'page_title', { x: 32, y: 24, w: 820, h: 56, z: 1000 },
       textbox(pageTitle, { font: HEAD, size: '26pt', clr: NAVY, bold: true })),
-    visual(pageKey, 'page_subtitle', { x: 32, y: 76, w: 1300, h: 32, z: 2000 },
+    visual(pageKey, 'page_subtitle', { x: 32, y: 76, w: 820, h: 32, z: 2000 },
       textbox(subtitle, { font: BODY, size: '14pt', clr: MUTED })),
     visual(pageKey, 'gold_rule', { x: 32, y: 112, w: 96, h: 4, z: 3000 }, rect(GOLD)),
     visual(pageKey, 'data_as_of', { x: 1488, y: 32, w: 400, h: 40, z: 4000 }, dataAsOfCard()),
+    visual(pageKey, 'synthetic_banner', { x: 880, y: 32, w: 584, h: 72, z: 4500 }, syntheticBanner()),
     visual(pageKey, 'rail', { ...RAIL, z: 0 }, rect(NAVY)),
   ];
 }
