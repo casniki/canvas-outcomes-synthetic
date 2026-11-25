@@ -46,6 +46,7 @@ You need Power BI Desktop for Windows. A recent release is required, because the
 | `metadata/` | Institutional metadata extract (input to the generator). |
 | `data/` | Generated CSVs, one per model table, with the model's source column names. |
 | `screenshots/` | One PNG per report page. |
+| `docs/` | `PROMPTS.md`, the Claude Code prompts used to build the project, and `report-spec.md`, the approved page plan. |
 | `tools/` | Extract, generate, point-at-CSV and report-build scripts. |
 
 ## Regenerate

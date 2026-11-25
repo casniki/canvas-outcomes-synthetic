@@ -133,3 +133,9 @@ Department rules translate Canvas department names to register program names thr
 - **The banner:** every page has a gold banner in the header between the title and the "Data as of" date. It reads: "**Synthetic data.** Every student, course and result in this report is generated. Figures are invented and describe no real program or person." Screenshots are updated.
 - **Layout:** the page title and subtitle boxes are narrower (820 px) so they don't overlap the banner.
 - **Production differs:** the production generator has no banner. This is a deliberate difference from the shared generator: `SYNTHETIC_NOTE` and `syntheticBanner()` exist only in this copy.
+
+## 2026-11-25 — Build prompts and report spec
+
+- **`docs/PROMPTS.md`:** the Claude Code prompts used to build the project, in order, numbered 1–12. Prompts 1–5 built the production project and prompts 6–12 built this synthetic copy. Connection details, personal details and a real outcome ID are replaced with placeholders. Claude's replies are left out.
+- **`docs/report-spec.md`:** the page plan approved before the report was built. Figures it quoted from production data are replaced with general descriptions.
+- The README's Layout table now lists `docs/`.
