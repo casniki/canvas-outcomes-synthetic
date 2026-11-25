@@ -113,6 +113,27 @@ table 'Outcome Results'
 		displayFolder: Report Labels
 		lineageTag: 68a3a289-98c9-4261-9378-923bd18f39c4
 
+	/// Text label for the Program Drill-Down subtitle: 'PLOs by year · <school> · <program>'. Names the single school or program in the current filter context (drillthrough, slicer or cross-filter), 'All schools' / 'All programs' when that column is unfiltered, and a count when several are selected.
+	measure 'Drill-Down Scope' =
+			VAR SchoolText =
+			    SWITCH (
+			        TRUE (),
+			        NOT ISFILTERED ( 'Course'[School] ), "All schools",
+			        HASONEVALUE ( 'Course'[School] ), VALUES ( 'Course'[School] ),
+			        FORMAT ( COUNTROWS ( VALUES ( 'Course'[School] ) ), "0" ) & " schools"
+			    )
+			VAR ProgramText =
+			    SWITCH (
+			        TRUE (),
+			        NOT ISFILTERED ( 'Learning Outcome'[Program] ), "All programs",
+			        HASONEVALUE ( 'Learning Outcome'[Program] ), VALUES ( 'Learning Outcome'[Program] ),
+			        FORMAT ( COUNTROWS ( VALUES ( 'Learning Outcome'[Program] ) ), "0" ) & " programs"
+			    )
+			RETURN
+			    "PLOs by year  ·  " & SchoolText & "  ·  " & ProgramText
+		displayFolder: Report Labels
+		lineageTag: 7c334fca-b662-46b2-8288-70dc04c08d6f
+
 	/// 1 when the current filter context has at least 20 scored results and a Not Met Rate of 0 (every scored result at or above the LLU 0.75 standard); otherwise blank. Flags assessment that may not be discriminating. Intended at Learning Outcome[Program] grain with Outcome Type = PLO. Same exclusions as Scored Results (Is Hidden results, test courses).
 	measure 'Watchlist Flag' = IF ( [Scored Results] >= 20 && [Not Met Rate] = 0, 1 )
 		formatString: 0

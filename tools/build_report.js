@@ -171,6 +171,28 @@ function dataAsOfCard() {
   };
 }
 
+// Subtitle bound to a text measure, for a page whose scope changes (Program Drill-Down:
+// the drillthrough school, or the slicer selections). Styled like the static subtitle.
+function measureSubtitle(measure, altText) {
+  return {
+    visualType: 'cardVisual',
+    query: { queryState: { Data: { projections: [proj(meas(OR, measure))] } } },
+    objects: {
+      value: [{ properties: { fontSize: num(14), fontFamily: str(BODY), fontColor: color(NAVY), bold: bool(true), horizontalAlignment: str('left') }, selector: { id: 'default' } }],
+      label: [{ properties: { show: bool(false) }, selector: { id: 'default' } }],
+      // Zero every padding layer so the text lines up with the page title at x = 32.
+      padding: [{ properties: { paddingSelection: str('Custom'), paddingUniform: num(0) }, selector: { id: 'default' } }],
+      layout: [{ properties: { paddingUniform: num(0) }, selector: { id: 'default' } }],
+      cardCalloutArea: [{ properties: { paddingIndividual: bool(false), paddingUniform: int(0) } }],
+      outline: [{ properties: { show: bool(false) }, selector: { id: 'default' } }],
+    },
+    visualContainerObjects: {
+      background: off, border: off, title: off, padding: pad(0),
+      general: alt(altText),
+    },
+  };
+}
+
 function slicer(entity, column, headerText, mode, selected = null) {
   const objects = {
     data: [{ properties: { mode: str(mode) } }],
@@ -299,35 +321,39 @@ function table(fields, sortMeasure, chartTitle, altText, filterConfig = null, wi
   return { body: v, filterConfig };
 }
 
-function backButton(label) {
+// Page tabs for the navy rail. A pageNavigator lists the report's pages automatically,
+// so renaming or adding a page needs no change here. The current page is gold.
+function pageNavigator() {
+  const NAV_HOVER = '#1E4673';
+  const NAV_IDLE = '#16365E';
+  const states = (prop, d, h, s) => [
+    { properties: { [prop]: d }, selector: { id: 'default' } },
+    { properties: { [prop]: h }, selector: { id: 'hover' } },
+    { properties: { [prop]: s }, selector: { id: 'selected' } },
+  ];
   return {
-    visualType: 'actionButton',
+    visualType: 'pageNavigator',
     objects: {
-      text: [
-        { properties: { show: bool(true) } },
-        { properties: { text: str(label), fontFamily: str(BODY), fontSize: num(13), bold: bool(true), fontColor: color(NAVY), horizontalAlignment: str('center') }, selector: { id: 'default' } },
-      ],
-      icon: [
-        { properties: { show: bool(false) } },
-        { properties: { shapeType: str('back'), placement: str('left') }, selector: { id: 'default' } },
-      ],
+      layout: [{ properties: { orientation: num(1), cellPadding: int(8) } }],
+      shape: [{ properties: { tileShape: str('rectangleRounded'), roundEdge: int(6) } }],
       fill: [
         { properties: { show: bool(true) } },
-        { properties: { fillColor: color(GOLD), transparency: num(0) }, selector: { id: 'default' } },
-        { properties: { fillColor: color('#E3C27F') }, selector: { id: 'hover' } },
+        ...states('fillColor', color(NAV_IDLE), color(NAV_HOVER), color(GOLD)),
+      ],
+      text: [
+        { properties: { show: bool(true) } },
+        // Every state repeats the font settings; a state that omits them falls back to a smaller default.
+        ...[['default', false, WHITE], ['hover', false, WHITE], ['selected', true, NAVY]].map(([id, b, c]) => ({
+          properties: { fontFamily: str(BODY), fontSize: num(12), bold: bool(b), fontColor: color(c), horizontalAlignment: str('left'), leftMargin: int(16) },
+          selector: { id },
+        })),
       ],
       outline: [{ properties: { show: bool(false) } }],
-      shape: [
-        { properties: { tileShape: str('rectangleRounded'), roundEdge: int(6) } },
-        { properties: { tileShape: str('rectangleRounded') }, selector: { id: 'default' } },
-      ],
     },
     visualContainerObjects: {
       background: off, border: off, padding: pad(0),
-      visualLink: [{ properties: { show: bool(true), type: str('Back'), tooltip: str('Return to the page you drilled through from') } }],
-      general: alt('Back button: returns to Institution Overview'),
+      general: alt('Page navigation: Institution Overview, Program Drill-Down, Core Values, Assessment Quality Watchlist'),
     },
-    drillFilterOtherVisuals: true,
   };
 }
 
@@ -341,6 +367,10 @@ const RAIL_IN = { x: 48, w: 232 };
 const KPI_H = 112;              // KPI card row height
 const MAIN_Y = CY + KPI_H + 24; // main visuals start below the KPI row (272)
 const MAIN_H = CB - MAIN_Y;     // 776
+// Page tabs sit at the bottom of the rail, in the same place on every page.
+const NAV_TILES = 4, NAV_TILE_H = 48, NAV_GAP = 8;
+const NAV = { h: NAV_TILES * NAV_TILE_H + (NAV_TILES - 1) * NAV_GAP };
+NAV.y = CB - 16 - NAV.h;   // 816 .. 1032
 
 // Synthetic build only: a banner on every page saying the data is generated.
 // (The production generator has no banner; this is a deliberate difference.)
@@ -357,12 +387,21 @@ function chrome(pageKey, pageTitle, subtitle) {
   return [
     visual(pageKey, 'page_title', { x: 32, y: 24, w: 820, h: 56, z: 1000 },
       textbox(pageTitle, { font: HEAD, size: '26pt', clr: NAVY, bold: true })),
-    visual(pageKey, 'page_subtitle', { x: 32, y: 76, w: 820, h: 32, z: 2000 },
-      textbox(subtitle, { font: BODY, size: '14pt', clr: MUTED })),
+    // A measure subtitle is a card, which insets its text about 16 px; start it 16 px left
+    // so the text lines up with the title.
+    visual(pageKey, 'page_subtitle', typeof subtitle === 'string'
+      ? { x: 32, y: 76, w: 820, h: 32, z: 2000 }
+      : { x: 16, y: 76, w: 836, h: 32, z: 2000 },
+      typeof subtitle === 'string'
+        ? textbox(subtitle, { font: BODY, size: '14pt', clr: MUTED })
+        : measureSubtitle(subtitle.measure, subtitle.alt)),
     visual(pageKey, 'gold_rule', { x: 32, y: 112, w: 96, h: 4, z: 3000 }, rect(GOLD)),
     visual(pageKey, 'data_as_of', { x: 1488, y: 32, w: 400, h: 40, z: 4000 }, dataAsOfCard()),
     visual(pageKey, 'synthetic_banner', { x: 880, y: 32, w: 584, h: 72, z: 4500 }, syntheticBanner()),
     visual(pageKey, 'rail', { ...RAIL, z: 0 }, rect(NAVY)),
+    visual(pageKey, 'nav_label', { x: RAIL_IN.x + 16, y: NAV.y - 8 - 28, w: RAIL_IN.w - 16, h: 28, z: 4600 },
+      textbox('PAGES', { font: BODY, size: '11pt', clr: ICE, bold: true })),
+    visual(pageKey, 'page_nav', { x: RAIL_IN.x, y: NAV.y, w: RAIL_IN.w, h: NAV.h, z: 4700 }, pageNavigator()),
   ];
 }
 
@@ -420,13 +459,14 @@ function page2() {
     }],
   };
   const visuals = [
-    ...chrome(k, 'Program Drill-Down', 'Program learning outcomes by year'),
+    ...chrome(k, 'Program Drill-Down', {
+      measure: 'Drill-Down Scope',
+      alt: 'Page scope: the school and program this page is filtered to, from drillthrough or the slicers',
+    }),
     visual(k, 'school_slicer', { x: RAIL_IN.x, y: CY + 16, w: RAIL_IN.w, h: DROPDOWN_H, z: 5000 },
       slicer(COURSE, 'School', 'School', 'Dropdown')),
     visual(k, 'program_slicer', { x: RAIL_IN.x, y: CY + 16 + DROPDOWN_H + 16, w: RAIL_IN.w, h: DROPDOWN_H, z: 6000 },
       slicer(LO, 'Program', 'Program', 'Dropdown')),
-    visual(k, 'back_button', { x: RAIL_IN.x, y: CB - 16 - 48, w: RAIL_IN.w, h: 48, z: 7000 },
-      backButton('Back to Overview')),
     visual(k, 'outcome_year_matrix', { x: 320, y: CY, w: 960, h: 912, z: 8000 },
       matrix(col(LO, 'Outcome Title'), col(DATE, 'Academic Year'), ['Pct at Mastery (LLU)', 'Scored Results'],
         'PLO Mastery by Academic Year',

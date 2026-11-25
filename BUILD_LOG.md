@@ -139,3 +139,24 @@ Department rules translate Canvas department names to register program names thr
 - **`docs/PROMPTS.md`:** the Claude Code prompts used to build the project, in order, numbered 1–12. Prompts 1–5 built the production project and prompts 6–12 built this synthetic copy. Connection details, personal details and a real outcome ID are replaced with placeholders. Claude's replies are left out.
 - **`docs/report-spec.md`:** the page plan approved before the report was built. Figures it quoted from production data are replaced with general descriptions.
 - The README's Layout table now lists `docs/`.
+
+## 2026-11-25 — Page navigation
+
+- **Page tabs in the rail:** every page has a "Pages" list in the lower part of the navy filter rail, with one tile for each of the four pages. The current page is gold and the others are dark navy.
+  - It is a Power BI page navigator, so it follows the page list automatically. A renamed or added page appears without a generator change.
+  - Program Drill-Down is included. Opened from its tile, it shows every school; drillthrough from the School bar still filters it to one school.
+  - The tiles sit at the bottom of the rail, in the same place on every page.
+- **Back button removed:** page 2's "Back to Overview" button is gone, because the Institution Overview tile does the same job. The validator now warns that the drillthrough page has no Back button (`PBIR_DRILLTHROUGH_BACK_BUTTON_MISSING`). This is expected.
+- **In the generator:** `pageNavigator()` builds the tiles and `chrome()` places them on every page. Each tile state (default, hover, selected) repeats its font settings, because a state that leaves them out falls back to a smaller font.
+- **Desktop editing view:** hold Ctrl and click a tile to change page. In reading view and the service, a plain click works.
+- All four screenshots are updated.
+
+## 2026-11-25 — Program Drill-Down scope subtitle
+
+- **What it shows:** page 2's subtitle now says what the page covers, for example "PLOs by year · School of Medicine · All programs".
+  - It names the drillthrough school, or the School and Program slicer selections.
+  - With nothing selected it reads "All schools" or "All programs". With several selected it gives a count, such as "2 schools".
+  - Clicking a bar or row on the page cross-filters the subtitle too, so it always describes what the visuals show.
+- **Model:** new measure `Drill-Down Scope` in Outcome Results, display folder Report Labels. It was checked by DAX query: no filter, one school, one school plus one program (the longest pair, which fits), and two schools.
+- **Report:** `chrome()` takes either subtitle text or `{ measure, alt }`. The measure version is a card, placed 16 px further left because the card insets its text. That keeps it lined up with the title.
+- Page 2 screenshot updated.
